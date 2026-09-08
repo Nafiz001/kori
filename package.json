@@ -4,12 +4,16 @@
   "description": "A double-entry ledger and payments API",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "vitest run",
     "migrate": "tsx --env-file=.env src/cli.ts migrate",
     "verify": "tsx --env-file=.env src/cli.ts verify",
     "db:reset": "tsx --env-file=.env src/cli.ts reset",
     "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "tsx watch --env-file=.env src/index.ts",
+    "start": "node --env-file=.env dist/index.js",
+    "worker": "tsx --env-file=.env src/worker.ts",
+    "test:watch": "vitest"
   },
   "keywords": [],
   "author": "",
