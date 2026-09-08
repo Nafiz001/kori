@@ -1,0 +1,32 @@
+# Everything kori needs to run, so that `docker compose up` is the whole setup.
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: kori
+      POSTGRES_PASSWORD: kori
+      POSTGRES_DB: kori
+    ports:
+      - "5433:5432"
+    healthcheck:
+      # The app waits for this rather than sleeping, because a container that
+      # has started is not the same as a database that will accept a connection.
+      test: ["CMD-SHELL", "pg_isready -U kori -d kori"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - kori-pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  kori-pgdata:
