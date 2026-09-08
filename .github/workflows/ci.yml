@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Real PostgreSQL and Redis, not mocks. Every claim kori makes -- the
+    # deferred constraint trigger, SELECT ... FOR UPDATE, ON CONFLICT, the
+    # deadlock ordering -- is a claim about how PostgreSQL behaves, and a mock
+    # would simply agree with whatever the code did.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: kori
+          POSTGRES_PASSWORD: kori
+          POSTGRES_DB: kori
+        ports: ["5433:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kori -d kori"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+
+      redis:
+        image: redis:7-alpine
+        ports: ["6380:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 2s
+          --health-timeout 3s
+          --health-retries 20
+
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgres://kori:kori@127.0.0.1:5433/kori
+      REDIS_URL: redis://127.0.0.1:6380
+      JWT_SECRET: ci-secret-that-is-at-least-thirty-two-chars
+      LOG_LEVEL: silent
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Demo
+        run: npm run demo
+
+      - name: Verify the ledger
+        run: npm run verify
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the image
+        run: docker build -t kori:ci .

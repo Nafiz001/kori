@@ -2,6 +2,9 @@ import { config } from "./config.js";
 import { closePool, getPool, withTransaction } from "./db/pool.js";
 import { appliedMigrations, migrate, pendingMigrations, resetDatabase } from "./db/migrate.js";
 import { verifyLedger } from "./ledger/verify.js";
+import { generateApiKey, hashSecret } from "./http/middleware.js";
+import { sweepExpired } from "./idempotency/store.js";
+import { randomUUID } from "node:crypto";
 
 /**
  * The operator's tool: migrate, inspect, verify.
@@ -52,8 +55,43 @@ async function main(): Promise<void> {
       break;
     }
 
+    case "apikey": {
+      const name = process.argv[3];
+      if (!name) {
+        console.log("usage: kori apikey <name> [scope ...]");
+        process.exitCode = 2;
+        break;
+      }
+      const scopes = process.argv.slice(4);
+      const { key, prefix, secret } = generateApiKey();
+
+      await withTransaction(async (db) => {
+        await db.query(
+          `INSERT INTO api_keys (id, name, prefix, secret_hash, scopes)
+           VALUES ($1, $2, $3, $4, $5)`,
+          [randomUUID(), name, prefix, await hashSecret(secret), scopes.length ? scopes : ["*"]],
+        );
+      });
+
+      // Shown once and never again. Only the Argon2 hash is stored, so there is
+      // no way to recover this later -- which is the property that makes a
+      // leaked database useless to an attacker.
+      console.log(`name:   ${name}`);
+      console.log(`scopes: ${(scopes.length ? scopes : ["*"]).join(", ")}`);
+      console.log(`key:    ${key}`);
+      console.log("");
+      console.log("This is the only time the key is shown. Store it now.");
+      break;
+    }
+
+    case "sweep": {
+      const removed = await withTransaction((db) => sweepExpired(db));
+      console.log(`removed ${removed} expired idempotency key(s)`);
+      break;
+    }
+
     default:
-      console.log("usage: kori <migrate|status|reset|verify>");
+      console.log("usage: kori <migrate|status|reset|verify|apikey|sweep>");
       process.exitCode = 2;
   }
 

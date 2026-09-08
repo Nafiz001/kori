@@ -152,15 +152,23 @@ export async function verifyLedger(db: Db): Promise<VerificationReport> {
     });
   }
 
-  const [{ rows: accountCount }, { rows: transferCount }] = await Promise.all([
-    db.query<{ n: string }>("SELECT count(*)::text AS n FROM accounts"),
-    db.query<{ n: string }>("SELECT count(*)::text AS n FROM transfers"),
-  ]);
+  // Sequential, not Promise.all. `db` is one connection, and a connection runs
+  // one query at a time -- issuing two together does not parallelise anything,
+  // it queues them behind a deprecation warning and will throw outright in
+  // pg@9. Parallelism here would need two connections, and two connections
+  // would mean two transactions, which is the opposite of what a consistency
+  // check wants.
+  const accountCount = await db.query<{ n: string }>(
+    "SELECT count(*)::text AS n FROM accounts",
+  );
+  const transferCount = await db.query<{ n: string }>(
+    "SELECT count(*)::text AS n FROM transfers",
+  );
 
   return {
     ok: problems.length === 0,
-    accountsChecked: Number(accountCount[0]?.n ?? 0),
-    transfersChecked: Number(transferCount[0]?.n ?? 0),
+    accountsChecked: Number(accountCount.rows[0]?.n ?? 0),
+    transfersChecked: Number(transferCount.rows[0]?.n ?? 0),
     problems,
     durationMs: Date.now() - started,
   };

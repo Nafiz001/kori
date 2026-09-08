@@ -13,7 +13,9 @@
     "dev": "tsx watch --env-file=.env src/index.ts",
     "start": "node --env-file=.env dist/index.js",
     "worker": "tsx --env-file=.env src/worker.ts",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "demo": "tsx --env-file=.env src/demo.ts",
+    "apikey": "tsx --env-file=.env src/cli.ts apikey"
   },
   "keywords": [],
   "author": "",
