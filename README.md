@@ -86,7 +86,7 @@ rather than pretending otherwise.
 ## Quick start
 
 ```sh
-git clone https://github.com/nafizahmed/kori
+git clone https://github.com/Nafiz001/kori
 cd kori
 npm install
 docker compose up -d          # PostgreSQL and Redis
