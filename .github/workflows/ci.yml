@@ -59,6 +59,11 @@ jobs:
       - name: Test
         run: npm test
 
+      # The npm scripts load .env, which is never committed. The values above
+      # already win over it (--env-file does not override set variables), so
+      # the example file only has to exist.
+      - run: cp .env.example .env
+
       - name: Demo
         run: npm run demo
 
