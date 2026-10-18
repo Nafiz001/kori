@@ -4,6 +4,8 @@ A double-entry ledger and payments API, in TypeScript and PostgreSQL.
 
 কড়ি — the cowrie shells used as currency in old Bengal.
 
+**Live sandbox:** https://kori.130-210-37-18.sslip.io — move money, send a request twice, overspend, and verify the books.
+
 kori moves money between accounts and refuses to lose any. Every movement is a
 balanced transaction, the journal is append-only, and a verification pass
 re-derives every balance from that journal to prove nothing has drifted.
