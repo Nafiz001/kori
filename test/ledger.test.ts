@@ -490,3 +490,21 @@ describe("verification", () => {
     expect(await balanceOf(b)).toBe(await derivedBalanceOf(b));
   });
 });
+
+describe("the demo ledger", () => {
+  it("seeds once, balanced, and changes nothing the second time", async () => {
+    const { seedDemoLedger, DEMO_BANK } = await import("../src/demoSeed.js");
+
+    await seedDemoLedger();
+    const alice = await withTransaction((db) => getAccountByHandle(db, "user:alice/wallet"));
+    expect(alice?.balance.minor).toBeGreaterThanOrEqual(0n);
+
+    const before = await countEntries(DEMO_BANK);
+    const again = await seedDemoLedger();
+    expect(again.created).toBe(false);
+    expect(await countEntries(DEMO_BANK)).toBe(before);
+
+    const report = await withTransaction((db) => verifyLedger(db));
+    expect(report.ok).toBe(true);
+  });
+});

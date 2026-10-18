@@ -5,6 +5,7 @@ import { verifyLedger } from "./ledger/verify.js";
 import { generateApiKey, hashSecret } from "./http/middleware.js";
 import { sweepExpired } from "./idempotency/store.js";
 import { randomUUID } from "node:crypto";
+import { seedDemoLedger } from "./demoSeed.js";
 
 /**
  * The operator's tool: migrate, inspect, verify.
@@ -84,6 +85,13 @@ async function main(): Promise<void> {
       break;
     }
 
+    case "seed-demo": {
+      // The accounts behind the public demo; running it again changes nothing.
+      const { created } = await seedDemoLedger();
+      console.log(created ? "demo ledger created" : "demo ledger already exists");
+      break;
+    }
+
     case "sweep": {
       const removed = await withTransaction((db) => sweepExpired(db));
       console.log(`removed ${removed} expired idempotency key(s)`);
@@ -91,7 +99,7 @@ async function main(): Promise<void> {
     }
 
     default:
-      console.log("usage: kori <migrate|status|reset|verify|apikey|sweep>");
+      console.log("usage: kori <migrate|status|reset|verify|apikey|seed-demo|sweep>");
       process.exitCode = 2;
   }
 
